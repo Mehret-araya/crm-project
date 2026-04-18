@@ -1,0 +1,119 @@
+Build a production-ready Client Lead Management System (Mini CRM) as a full-stack web application.
+🔹 Tech Stack Requirements: Frontend:
+React.js (with functional components and hooks)
+Tailwind CSS (for modern UI styling)
+Axios (for API calls)
+Backend:
+Node.js + Express.js (RESTful API)
+JWT Authentication (for secure admin access)
+Database:
+MongoDB (Mongoose ODM)
+🔹 Application Features:
+Authentication System:
+Admin login (JWT-based authentication)
+Protected routes (dashboard only accessible after login)
+Store token securely (localStorage or HTTP-only cookies)
+Lead Management (Core CRM):
+Create a complete CRUD system for leads:
+Each lead must contain:
+Full Name
+Email
+Phone Number
+Source (Website, Social Media, Referral, etc.)
+Status (New, Contacted, Converted)
+Notes
+Created At (timestamp)
+Lead Dashboard UI:
+Display leads in a responsive table and card view toggle
+Show: 
+Name
+Email
+Source
+Status badge (color-coded)
+Action buttons
+Status Colors:
+New → Blue
+Contacted → Orange
+Converted → Green
+Lead Actions:
+Add new lead (modal form)
+Edit lead
+Delete lead with confirmation
+Update status via dropdown
+Add notes per lead
+Search & Filter:
+Search by name/email
+Filter by status
+Sort by newest/oldest
+UI/UX Design (IMPORTANT):
+Design must be modern, clean, and professional:
+Dark/light mode toggle
+Glassmorphism cards
+Smooth animations (hover, transitions)
+Sidebar navigation (Dashboard, Leads, Settings)
+Top navbar with profile and logout
+Responsive for mobile, tablet, desktop
+Use:
+Soft shadows
+Rounded corners (border-radius: 12px+)
+Consistent spacing system
+Subtle gradients
+Animations:
+Card hover scale effect
+Button ripple/hover transitions
+Smooth modal open/close animations
+Page transitions (fade/slide)
+Backend API Endpoints:
+Implement REST APIs:
+POST /api/auth/login
+GET /api/leads
+POST /api/leads
+PUT /api/leads/:id
+DELETE /api/leads/:id
+Ensure:
+Input validation
+Error handling
+Secure routes with JWT middleware
+Database Design:
+Use MongoDB schema:
+Lead Schema:
+name: String
+email: String
+phone: String
+source: String
+status: String
+notes: String
+createdAt: Date
+Project Structure:
+Frontend:
+/components
+/pages
+/services (API calls)
+/context (auth management)
+Backend:
+/routes
+/controllers
+/models
+/middleware
+Extra Features (for excellence):
+Toast notifications (success/error)
+Loading spinners
+Empty state UI (no leads yet)
+Pagination (optional)
+Export leads (CSV optional)
+🔹 Deliverables:
+Fully functional full-stack CRM
+Clean, modular code
+Responsive UI
+API integrated with frontend
+Ready for deployment
+🔹 Bonus (if supported):
+Deploy frontend (Vercel)
+Deploy backend (Render)
+Use MongoDB Atlas (cloud DB)
+🔹 Final Output:
+Provide:
+Complete frontend and backend code
+Clear instructions to run locally
+Example API requests
+Environment setup (.env for DB + JWT)
