@@ -29,6 +29,7 @@ app.use(
 app.use(cors({
   origin: [
     "https://mehret-araya.github.io",
+    "https://crm-project-0s9s.onrender.com",
     "http://localhost:8081",
     "http://localhost:5173",
   ],
