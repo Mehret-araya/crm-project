@@ -11,7 +11,8 @@ import {
   Trash2,
   Globe,
   ArrowUpDown,
-  Inbox
+  Inbox,
+  Users
 } from "lucide-react";
 import {
   GetLeadsStatus,
