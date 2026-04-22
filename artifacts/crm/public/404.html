@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Lead Management CRM</title>
+    <script>
+      // GitHub Pages SPA redirect trick:
+      // Store the full path in sessionStorage then redirect to the base index.
+      const repo = "/crm-project";
+      const path = window.location.pathname.replace(repo, "") || "/";
+      sessionStorage.setItem("spa_redirect", path + window.location.search);
+      window.location.replace(repo + "/");
+    </script>
+  </head>
+  <body></body>
+</html>
