@@ -1,7 +1,6 @@
 import { Router, IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { db, adminsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { AdminModel } from "@workspace/db-mongo";
 import { LoginBody } from "@workspace/api-zod";
 import { signToken, requireAuth, AuthenticatedRequest } from "../middlewares/auth";
 
@@ -16,32 +15,32 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   const { email, password } = parsed.data;
 
-  const [admin] = await db.select().from(adminsTable).where(eq(adminsTable.email, email));
+  const admin = await AdminModel.findOne({ email }).lean();
   if (!admin) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }
 
-  const valid = await bcrypt.compare(password, admin.passwordHash);
+  const valid = await bcrypt.compare(password, admin["passwordHash"] as string);
   if (!valid) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }
 
-  const token = signToken(admin.id);
+  const token = signToken(admin["id"] as number);
   res.json({
     token,
-    user: { id: admin.id, email: admin.email, name: admin.name },
+    user: { id: admin["id"], email: admin["email"], name: admin["name"] },
   });
 });
 
 router.get("/auth/me", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
-  const [admin] = await db.select().from(adminsTable).where(eq(adminsTable.id, req.adminId!));
+  const admin = await AdminModel.findOne({ id: req.adminId }).lean();
   if (!admin) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  res.json({ id: admin.id, email: admin.email, name: admin.name });
+  res.json({ id: admin["id"], email: admin["email"], name: admin["name"] });
 });
 
 export default router;

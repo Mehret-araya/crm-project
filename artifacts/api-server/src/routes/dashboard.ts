@@ -1,27 +1,24 @@
 import { Router, IRouter } from "express";
-import { db, leadsTable } from "@workspace/db";
-import { eq, count, sql, desc } from "drizzle-orm";
+import { LeadModel, docToLead } from "@workspace/db-mongo";
 import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
 router.get("/dashboard/stats", requireAuth, async (_req, res): Promise<void> => {
-  const [totalResult, newResult, contactedResult, convertedResult, thisMonthResult] = await Promise.all([
-    db.select({ count: count() }).from(leadsTable),
-    db.select({ count: count() }).from(leadsTable).where(eq(leadsTable.status, "New")),
-    db.select({ count: count() }).from(leadsTable).where(eq(leadsTable.status, "Contacted")),
-    db.select({ count: count() }).from(leadsTable).where(eq(leadsTable.status, "Converted")),
-    db.select({ count: count() }).from(leadsTable).where(
-      sql`date_trunc('month', ${leadsTable.createdAt}) = date_trunc('month', now())`
-    ),
-  ]);
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const totalLeads = Number(totalResult[0]?.count ?? 0);
-  const newLeads = Number(newResult[0]?.count ?? 0);
-  const contactedLeads = Number(contactedResult[0]?.count ?? 0);
-  const convertedLeads = Number(convertedResult[0]?.count ?? 0);
-  const leadsThisMonth = Number(thisMonthResult[0]?.count ?? 0);
-  const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100 * 10) / 10 : 0;
+  const [totalLeads, newLeads, contactedLeads, convertedLeads, leadsThisMonth] =
+    await Promise.all([
+      LeadModel.countDocuments(),
+      LeadModel.countDocuments({ status: "New" }),
+      LeadModel.countDocuments({ status: "Contacted" }),
+      LeadModel.countDocuments({ status: "Converted" }),
+      LeadModel.countDocuments({ createdAt: { $gte: startOfMonth } }),
+    ]);
+
+  const conversionRate =
+    totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100 * 10) / 10 : 0;
 
   res.json({
     totalLeads,
@@ -34,26 +31,18 @@ router.get("/dashboard/stats", requireAuth, async (_req, res): Promise<void> => 
 });
 
 router.get("/dashboard/recent", requireAuth, async (_req, res): Promise<void> => {
-  const leads = await db
-    .select()
-    .from(leadsTable)
-    .orderBy(desc(leadsTable.updatedAt))
-    .limit(8);
-
-  res.json(leads);
+  const docs = await LeadModel.find().sort({ updatedAt: -1 }).limit(8).lean();
+  res.json(docs.map((d) => docToLead(d as Parameters<typeof docToLead>[0])));
 });
 
 router.get("/dashboard/sources", requireAuth, async (_req, res): Promise<void> => {
-  const result = await db
-    .select({
-      source: leadsTable.source,
-      count: count(),
-    })
-    .from(leadsTable)
-    .groupBy(leadsTable.source)
-    .orderBy(desc(count()));
+  const result = await LeadModel.aggregate<{ source: string; count: number }>([
+    { $group: { _id: "$source", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+    { $project: { _id: 0, source: "$_id", count: 1 } },
+  ]);
 
-  res.json(result.map((r) => ({ source: r.source, count: Number(r.count) })));
+  res.json(result);
 });
 
 export default router;
