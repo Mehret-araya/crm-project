@@ -36,11 +36,6 @@ export default function Login() {
     },
   });
 
-  function fillDemo() {
-    form.setValue("email", "admin@crm.com");
-    form.setValue("password", "admin123");
-  }
-
   function onSubmit(values: z.infer<typeof loginSchema>) {
     loginMutation.mutate(
       { data: values },
@@ -71,23 +66,6 @@ export default function Login() {
           <p className="text-zinc-400 mt-2">Sign in to manage your leads</p>
         </div>
 
-        {/* Demo credentials banner */}
-        <div className="mb-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs text-orange-300 font-medium">Demo credentials</p>
-            <p className="text-xs text-zinc-400 mt-0.5">admin@crm.com / admin123</p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="text-orange-400 border-orange-500/40 hover:bg-orange-500/10 hover:text-orange-300 shrink-0"
-            onClick={fillDemo}
-          >
-            Fill in
-          </Button>
-        </div>
-
         <Card className="border-zinc-800 bg-zinc-900 shadow-xl">
           <CardHeader>
             <CardTitle className="text-white">Welcome back</CardTitle>
@@ -104,7 +82,7 @@ export default function Login() {
                       <FormLabel className="text-zinc-300">Email</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="admin@crm.com"
+                          placeholder="you@example.com"
                           autoComplete="email"
                           className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-orange-500"
                           {...field}
