@@ -7,6 +7,13 @@ import { connectDB } from "@workspace/db-mongo";
 
 const app: Express = express();
 
+const rawTrustProxyHops = process.env.TRUST_PROXY_HOPS ?? "0";
+const trustProxyHops = Number(rawTrustProxyHops);
+if (!Number.isSafeInteger(trustProxyHops) || trustProxyHops < 0) {
+  throw new Error("TRUST_PROXY_HOPS must be a non-negative integer.");
+}
+app.set("trust proxy", trustProxyHops);
+
 app.use(
   pinoHttp({
     logger,

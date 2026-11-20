@@ -3,10 +3,11 @@ import bcrypt from "bcryptjs";
 import { AdminModel } from "@workspace/db-mongo";
 import { LoginBody } from "@workspace/api-zod";
 import { signToken, requireAuth, AuthenticatedRequest } from "../middlewares/auth";
+import { loginRateLimiter } from "../middlewares/login-rate-limit";
 
 const router: IRouter = Router();
 
-router.post("/auth/login", async (req, res): Promise<void> => {
+router.post("/auth/login", loginRateLimiter, async (req, res): Promise<void> => {
   const parsed = LoginBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { getSessionSecret } from "../security/session-secret";
 
-const JWT_SECRET = process.env.SESSION_SECRET || "crm-secret-key";
+const JWT_SECRET = getSessionSecret();
 
 export interface AuthenticatedRequest extends Request {
   adminId?: number;

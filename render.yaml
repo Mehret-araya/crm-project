@@ -16,3 +16,5 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
+      - key: TRUST_PROXY_HOPS
+        value: 1
