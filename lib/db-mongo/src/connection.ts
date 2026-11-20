@@ -40,14 +40,22 @@ function validateDatabaseUrl(connectionString: string): string {
   return connectionString;
 }
 
-const connectionString = validateDatabaseUrl(getConfiguredDatabaseUrl());
-
-let connected = false;
+const SERVER_SELECTION_TIMEOUT_MS = 10_000;
+let pendingConnection: Promise<void> | undefined;
 
 export async function connectDB(): Promise<void> {
-  if (connected) return;
-  await mongoose.connect(connectionString);
-  connected = true;
+  if (mongoose.connection.readyState === 1) return;
+  if (pendingConnection) return pendingConnection;
+
+  const connectionString = validateDatabaseUrl(getConfiguredDatabaseUrl());
+  pendingConnection = mongoose
+    .connect(connectionString, { serverSelectionTimeoutMS: SERVER_SELECTION_TIMEOUT_MS })
+    .then(() => undefined)
+    .finally(() => {
+      pendingConnection = undefined;
+    });
+
+  return pendingConnection;
 }
 
 export { mongoose };

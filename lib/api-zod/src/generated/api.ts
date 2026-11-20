@@ -8,10 +8,18 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
+ * Confirms the API process is responding without checking MongoDB
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
+  status: zod.string(),
+});
+
+/**
+ * Returns success only when the API is connected to MongoDB
+ * @summary Database readiness check
+ */
+export const ReadinessCheckResponse = zod.object({
   status: zod.string(),
 });
 
@@ -47,15 +55,41 @@ export const GetMeResponse = zod.object({
  * Returns a list of leads with optional search and filter
  * @summary List all leads
  */
+export const getLeadsQuerySearchMax = 100;
+
+export const getLeadsQueryPageDefault = 1;
+export const getLeadsQueryPageMax = 10000;
+export const getLeadsQueryPageMultipleOf = 1;
+
+export const getLeadsQueryLimitDefault = 20;
+export const getLeadsQueryLimitMax = 100;
+export const getLeadsQueryLimitMultipleOf = 1;
+
 export const GetLeadsQueryParams = zod.object({
-  search: zod.coerce.string().optional().describe("Search by name or email"),
+  search: zod.coerce
+    .string()
+    .max(getLeadsQuerySearchMax)
+    .optional()
+    .describe("Search by name or email"),
   status: zod
     .enum(["New", "Contacted", "Converted"])
     .optional()
     .describe("Filter by status"),
   sort: zod.enum(["newest", "oldest"]).optional().describe("Sort by date"),
-  page: zod.coerce.number().optional().describe("Page number"),
-  limit: zod.coerce.number().optional().describe("Items per page"),
+  page: zod.coerce
+    .number()
+    .min(1)
+    .max(getLeadsQueryPageMax)
+    .multipleOf(getLeadsQueryPageMultipleOf)
+    .default(getLeadsQueryPageDefault)
+    .describe("Page number"),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(getLeadsQueryLimitMax)
+    .multipleOf(getLeadsQueryLimitMultipleOf)
+    .default(getLeadsQueryLimitDefault)
+    .describe("Items per page"),
 });
 
 export const GetLeadsResponse = zod.object({
@@ -107,8 +141,15 @@ export const CreateLeadBody = zod.object({
 /**
  * @summary Get a lead by ID
  */
+export const getLeadPathIdMax = 9007199254740991;
+export const getLeadPathIdMultipleOf = 1;
+
 export const GetLeadParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce
+    .number()
+    .min(1)
+    .max(getLeadPathIdMax)
+    .multipleOf(getLeadPathIdMultipleOf),
 });
 
 export const GetLeadResponse = zod.object({
@@ -133,8 +174,15 @@ export const GetLeadResponse = zod.object({
 /**
  * @summary Update a lead
  */
+export const updateLeadPathIdMax = 9007199254740991;
+export const updateLeadPathIdMultipleOf = 1;
+
 export const UpdateLeadParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce
+    .number()
+    .min(1)
+    .max(updateLeadPathIdMax)
+    .multipleOf(updateLeadPathIdMultipleOf),
 });
 
 export const UpdateLeadBody = zod.object({
@@ -177,15 +225,29 @@ export const UpdateLeadResponse = zod.object({
 /**
  * @summary Delete a lead
  */
+export const deleteLeadPathIdMax = 9007199254740991;
+export const deleteLeadPathIdMultipleOf = 1;
+
 export const DeleteLeadParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce
+    .number()
+    .min(1)
+    .max(deleteLeadPathIdMax)
+    .multipleOf(deleteLeadPathIdMultipleOf),
 });
 
 /**
  * @summary Update lead status
  */
+export const updateLeadStatusPathIdMax = 9007199254740991;
+export const updateLeadStatusPathIdMultipleOf = 1;
+
 export const UpdateLeadStatusParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce
+    .number()
+    .min(1)
+    .max(updateLeadStatusPathIdMax)
+    .multipleOf(updateLeadStatusPathIdMultipleOf),
 });
 
 export const UpdateLeadStatusBody = zod.object({

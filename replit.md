@@ -32,6 +32,8 @@ Create the first admin only from a trusted environment with `ADMIN_NAME`, `ADMIN
 
 The `seed-admin` command loads `lib/.env` (which is ignored by Git) for local bootstrap values. The API server itself reads environment variables from its process, so supply `DATABASE_URL` and `SESSION_SECRET` through your shell, IDE run configuration, or deployment environment when starting it. Use unique local credentials and do not reuse production secrets.
 
+The API attempts one MongoDB connection during startup, with a 10-second server-selection timeout. It starts listening only after MongoDB connects; otherwise it logs a sanitized startup failure and exits with a nonzero status so the operator or hosting platform can restart it. `GET /api/healthz` reports that the process is responding, while `GET /api/readyz` returns success only when MongoDB is connected. Render uses `/api/readyz` as its deployment health check.
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
@@ -39,6 +41,7 @@ The `seed-admin` command loads `lib/.env` (which is ignored by Git) for local bo
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `pnpm --filter @workspace/scripts test:reliability` — run backend reliability tests
 
 ## Architecture
 
@@ -69,6 +72,8 @@ lib/
 
 ## API Endpoints
 
+- `GET /api/healthz` — API process health (does not check MongoDB)
+- `GET /api/readyz` — MongoDB readiness
 - `POST /api/auth/login` — Login with email/password
 - `GET /api/auth/me` — Get current user (auth required)
 - `GET /api/leads` — List leads (search, filter, sort, paginate)

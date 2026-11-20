@@ -22,7 +22,7 @@ paths:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
+      description: Confirms the API process is responding without checking MongoDB
       responses:
         "200":
           description: Healthy
@@ -30,6 +30,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /readyz:
+    get:
+      operationId: readinessCheck
+      tags: [health]
+      summary: Database readiness check
+      description: Returns success only when the API is connected to MongoDB
+      responses:
+        "200":
+          description: API is ready to serve requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+        "503":
+          description: MongoDB is not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /auth/login:
     post:
@@ -92,6 +112,7 @@ paths:
           in: query
           schema:
             type: string
+            maxLength: 100
           description: Search by name or email
         - name: status
           in: query
@@ -109,11 +130,19 @@ paths:
           in: query
           schema:
             type: integer
+            multipleOf: 1
+            minimum: 1
+            maximum: 10000
+            default: 1
           description: Page number
         - name: limit
           in: query
           schema:
             type: integer
+            multipleOf: 1
+            minimum: 1
+            maximum: 100
+            default: 20
           description: Items per page
       responses:
         "200":
@@ -161,6 +190,9 @@ paths:
           required: true
           schema:
             type: integer
+            multipleOf: 1
+            minimum: 1
+            maximum: 9007199254740991
       responses:
         "200":
           description: Lead found
@@ -186,6 +218,9 @@ paths:
           required: true
           schema:
             type: integer
+            multipleOf: 1
+            minimum: 1
+            maximum: 9007199254740991
       requestBody:
         required: true
         content:
@@ -223,6 +258,9 @@ paths:
           required: true
           schema:
             type: integer
+            multipleOf: 1
+            minimum: 1
+            maximum: 9007199254740991
       responses:
         "204":
           description: Lead deleted
@@ -246,6 +284,9 @@ paths:
           required: true
           schema:
             type: integer
+            multipleOf: 1
+            minimum: 1
+            maximum: 9007199254740991
       requestBody:
         required: true
         content:
@@ -334,6 +375,7 @@ components:
         - status
 
     ErrorResponse:
+      description: Safe client-facing error response without internal diagnostics
       type: object
       properties:
         error:

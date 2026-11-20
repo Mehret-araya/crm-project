@@ -9,6 +9,9 @@ export interface HealthStatus {
   status: string;
 }
 
+/**
+ * Safe client-facing error response without internal diagnostics
+ */
 export interface ErrorResponse {
   error: string;
 }
@@ -161,6 +164,7 @@ export interface SourceBreakdown {
 export type GetLeadsParams = {
   /**
    * Search by name or email
+   * @maxLength 100
    */
   search?: string;
   /**
@@ -173,10 +177,14 @@ export type GetLeadsParams = {
   sort?: GetLeadsSort;
   /**
    * Page number
+   * @minimum 1
+   * @maximum 10000
    */
   page?: number;
   /**
    * Items per page
+   * @minimum 1
+   * @maximum 100
    */
   limit?: number;
 };

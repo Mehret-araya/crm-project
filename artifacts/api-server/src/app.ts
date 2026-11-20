@@ -3,7 +3,9 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { connectDB } from "@workspace/db-mongo";
+import { apiNotFoundHandler, createApiErrorHandler } from "./middlewares/api-error-handler";
+import { createDatabaseAvailabilityMiddleware } from "./lib/readiness";
+import { mongoose } from "@workspace/db-mongo";
 
 const app: Express = express();
 
@@ -44,14 +46,12 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-connectDB()
-  .then(() => logger.info("MongoDB connected"))
-  .catch((err) => {
-    logger.error({ err }, "MongoDB connection failed");
-    process.exit(1);
-  });
-
+app.use(
+  "/api",
+  createDatabaseAvailabilityMiddleware(() => mongoose.connection.readyState === 1),
+);
 app.use("/api", router);
+app.use(apiNotFoundHandler);
+app.use(createApiErrorHandler(logger));
 
 export default app;

@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "seed-admin": "tsx ./src/seed-admin.ts",
     "test:security": "node --experimental-strip-types --test test/admin-bootstrap.test.ts ../artifacts/api-server/test/security.test.ts",
+    "test:reliability": "node --experimental-strip-types --test ../artifacts/api-server/test/reliability.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

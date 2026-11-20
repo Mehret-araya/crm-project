@@ -11,6 +11,7 @@ import type { GetLeadsStatus } from "./getLeadsStatus";
 export type GetLeadsParams = {
   /**
    * Search by name or email
+   * @maxLength 100
    */
   search?: string;
   /**
@@ -23,10 +24,14 @@ export type GetLeadsParams = {
   sort?: GetLeadsSort;
   /**
    * Page number
+   * @minimum 1
+   * @maximum 10000
    */
   page?: number;
   /**
    * Items per page
+   * @minimum 1
+   * @maximum 100
    */
   limit?: number;
 };

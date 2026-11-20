@@ -11,24 +11,42 @@ import {
   GetLeadsQueryParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import {
+  escapeRegexLiteral,
+  isDecimalIntegerString,
+  isOptionalDecimalInteger,
+} from "../lib/lead-search";
 
 const router: IRouter = Router();
 
 router.get("/leads", requireAuth, async (req, res): Promise<void> => {
+  if (
+    !isOptionalDecimalInteger(req.query.page) ||
+    !isOptionalDecimalInteger(req.query.limit)
+  ) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
+
   const parsed = GetLeadsQueryParams.safeParse(req.query);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+  if (
+    !parsed.success ||
+    !Number.isSafeInteger(parsed.data.page) ||
+    !Number.isSafeInteger(parsed.data.limit)
+  ) {
+    res.status(400).json({ error: "Invalid request" });
     return;
   }
 
   const { search, status, sort, page = 1, limit = 20 } = parsed.data;
-  const offset = ((page as number) - 1) * (limit as number);
+  const offset = (page - 1) * limit;
 
   const filter: Record<string, unknown> = {};
   if (search) {
+    const literalSearch = new RegExp(escapeRegexLiteral(search), "i");
     filter["$or"] = [
-      { name: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
+      { name: literalSearch },
+      { email: literalSearch },
     ];
   }
   if (status) {
@@ -42,12 +60,12 @@ router.get("/leads", requireAuth, async (req, res): Promise<void> => {
     LeadModel.find(filter)
       .sort({ createdAt: sortOrder })
       .skip(offset)
-      .limit(limit as number)
+      .limit(limit)
       .lean(),
   ]);
 
   const leads = docs.map((d) => docToLead(d as Parameters<typeof docToLead>[0]));
-  const totalPages = Math.ceil(total / (limit as number));
+  const totalPages = Math.ceil(total / limit);
 
   res.json({ leads, total, page, limit, totalPages });
 });
@@ -55,7 +73,7 @@ router.get("/leads", requireAuth, async (req, res): Promise<void> => {
 router.post("/leads", requireAuth, async (req, res): Promise<void> => {
   const parsed = CreateLeadBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: "Invalid request" });
     return;
   }
 
@@ -64,9 +82,13 @@ router.post("/leads", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.get("/leads/:id", requireAuth, async (req, res): Promise<void> => {
+  if (!isDecimalIntegerString(req.params.id)) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
   const params = GetLeadParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+  if (!params.success || !Number.isSafeInteger(params.data.id)) {
+    res.status(400).json({ error: "Invalid request" });
     return;
   }
 
@@ -80,15 +102,19 @@ router.get("/leads/:id", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.put("/leads/:id", requireAuth, async (req, res): Promise<void> => {
+  if (!isDecimalIntegerString(req.params.id)) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
   const params = UpdateLeadParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+  if (!params.success || !Number.isSafeInteger(params.data.id)) {
+    res.status(400).json({ error: "Invalid request" });
     return;
   }
 
   const parsed = UpdateLeadBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: "Invalid request" });
     return;
   }
 
@@ -107,9 +133,13 @@ router.put("/leads/:id", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.delete("/leads/:id", requireAuth, async (req, res): Promise<void> => {
+  if (!isDecimalIntegerString(req.params.id)) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
   const params = DeleteLeadParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+  if (!params.success || !Number.isSafeInteger(params.data.id)) {
+    res.status(400).json({ error: "Invalid request" });
     return;
   }
 
@@ -123,15 +153,19 @@ router.delete("/leads/:id", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.patch("/leads/:id/status", requireAuth, async (req, res): Promise<void> => {
+  if (!isDecimalIntegerString(req.params.id)) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
   const params = UpdateLeadStatusParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+  if (!params.success || !Number.isSafeInteger(params.data.id)) {
+    res.status(400).json({ error: "Invalid request" });
     return;
   }
 
   const parsed = UpdateLeadStatusBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: "Invalid request" });
     return;
   }
 

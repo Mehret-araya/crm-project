@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Safe client-facing error response without internal diagnostics
+ */
 export interface ErrorResponse {
   error: string;
 }

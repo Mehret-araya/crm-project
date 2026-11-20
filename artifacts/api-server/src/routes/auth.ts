@@ -10,7 +10,7 @@ const router: IRouter = Router();
 router.post("/auth/login", loginRateLimiter, async (req, res): Promise<void> => {
   const parsed = LoginBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: "Invalid request" });
     return;
   }
 
