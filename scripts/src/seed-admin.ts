@@ -1,35 +1,59 @@
 import { config } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import {
+  AdminBootstrapError,
+  ADMIN_BOOTSTRAP_LOCK_ID,
+  bootstrapInitialAdmin,
+  readAdminBootstrapInput,
+} from "./admin-bootstrap.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, "../../lib/.env") });
 
-// Dynamic imports ensure env vars are loaded before db-mongo reads them
-const bcrypt = await import("bcryptjs");
-const { connectDB, AdminModel } = await import("@workspace/db-mongo");
+async function main(): Promise<void> {
+  const input = readAdminBootstrapInput();
+  const bcrypt = await import("bcryptjs");
+  const { connectDB, mongoose, AdminModel, CounterModel } = await import("@workspace/db-mongo");
 
-const ADMIN_NAME = "Mehret Araya";
-const ADMIN_EMAIL = "mehretaraya499@gmail.com";
-const ADMIN_PASSWORD = "Mehret@2025";
+  try {
+    await connectDB();
 
-async function seed() {
-  await connectDB();
+    await bootstrapInitialAdmin(input, {
+      countAdmins: () => AdminModel.countDocuments(),
+      claimBootstrap: async () => {
+        try {
+          await CounterModel.create({ _id: ADMIN_BOOTSTRAP_LOCK_ID, seq: 1 });
+          return true;
+        } catch (error) {
+          if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === 11000
+          ) {
+            return false;
+          }
+          throw error;
+        }
+      },
+      hashPassword: (password) => bcrypt.default.hash(password, 12),
+      createAdmin: async (admin) => {
+        await new AdminModel(admin).save();
+      },
+    });
 
-  const existing = await AdminModel.findOne({ email: ADMIN_EMAIL });
-  if (existing) {
-    console.log(`Admin with email "${ADMIN_EMAIL}" already exists. Skipping.`);
-    process.exit(0);
+    console.log("Initial admin account created.");
+  } finally {
+    await mongoose.disconnect();
   }
-
-  const passwordHash = await bcrypt.default.hash(ADMIN_PASSWORD, 10);
-  await new AdminModel({ name: ADMIN_NAME, email: ADMIN_EMAIL, passwordHash }).save();
-
-  console.log(`✅ Admin created — email: ${ADMIN_EMAIL}  password: ${ADMIN_PASSWORD}`);
-  process.exit(0);
 }
 
-seed().catch((err) => {
-  console.error("Seed failed:", err);
-  process.exit(1);
+main().catch((error: unknown) => {
+  if (error instanceof AdminBootstrapError) {
+    console.error(error.message);
+  } else {
+    console.error("Admin bootstrap failed. Check the configured environment and database connection.");
+  }
+  process.exitCode = 1;
 });

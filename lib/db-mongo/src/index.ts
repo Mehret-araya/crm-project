@@ -3,3 +3,4 @@ export { LeadModel, insertLeadSchema, updateLeadSchema, docToLead } from "./mode
 export type { InsertLead, UpdateLead, Lead } from "./models/lead";
 export { AdminModel, insertAdminSchema } from "./models/admin";
 export type { InsertAdmin, Admin } from "./models/admin";
+export { CounterModel } from "./models/counter";
