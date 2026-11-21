@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
 import { once } from "node:events";
 import express from "express";
+import bcrypt from "bcryptjs";
 import { test } from "node:test";
 import { connectDB } from "../../../lib/db-mongo/src/connection.ts";
 import {
@@ -23,12 +24,165 @@ import {
   createReadinessHandler,
 } from "../src/lib/readiness.ts";
 import { isValidAdminName } from "../src/lib/admin-profile.ts";
+import { createRegistrationHandler } from "../src/lib/registration.ts";
+import { getLeadScope, principalFromClaims, requireAdmin } from "../src/middlewares/authorization.ts";
+import type { AuthenticatedRequest } from "../src/middlewares/auth.ts";
+import { RegisterBody } from "../../../lib/api-zod/src/generated/api.ts";
+
+function parseRegistrationBody(value: unknown) {
+  const parsed = RegisterBody.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
 
 test("admin profile names must be present, non-null, and non-empty", () => {
   for (const name of [undefined, null, "", "   ", 42]) {
     assert.equal(isValidAdminName(name), false, `name ${String(name)}`);
   }
   assert.equal(isValidAdminName("Admin User"), true);
+});
+
+test("registration validates required fields and password policy", async () => {
+  const app = express();
+  app.use(express.json());
+  app.post("/register", createRegistrationHandler({
+    parseRegistrationBody,
+    async findExistingAccount() { return false; },
+    async hashPassword() { return "hash"; },
+    async createAccount() { return { id: 1 }; },
+  }));
+
+  await withServer(app, async (_server, baseUrl) => {
+    const invalidBodies = [
+      { email: "person@example.test", password: "correct-horse-battery" },
+      { name: "Person", password: "correct-horse-battery" },
+      { name: "Person", email: "person@example.test" },
+      { name: "Person", email: "bad-email", password: "correct-horse-battery" },
+      { name: "Person", email: "person@example.test", password: "short" },
+      { name: "   ", email: "person@example.test", password: "correct-horse-battery" },
+      { name: "Person", email: "person@example.test", password: "😀".repeat(19) },
+    ];
+
+    for (const body of invalidBodies) {
+      const response = await fetch(`${baseUrl}/register`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), { error: "Invalid registration details" });
+    }
+  });
+});
+
+test("registration hashes passwords and creates a normal account without returning secrets", async () => {
+  let created: { name: string; email: string; passwordHash: string; role: "user" } | undefined;
+  let passwordSentToHasher: string | undefined;
+  const app = express();
+  app.use(express.json());
+  app.post("/register", createRegistrationHandler({
+    parseRegistrationBody,
+    async findExistingAccount() { return false; },
+    async hashPassword(password) {
+      passwordSentToHasher = password;
+      return bcrypt.hash(password, 12);
+    },
+    async createAccount(account) { created = account; return { id: 21 }; },
+  }));
+
+  await withServer(app, async (_server, baseUrl) => {
+    const response = await fetch(`${baseUrl}/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "  CRM User ",
+        email: " USER@Example.Test ",
+        password: "correct-horse-battery",
+      }),
+    });
+    assert.equal(response.status, 201);
+    const responseBody = await response.json();
+    assert.deepEqual(responseBody, {
+      id: 21,
+      name: "CRM User",
+      email: "user@example.test",
+    });
+    assert.deepEqual(created, {
+      name: "CRM User",
+      email: "user@example.test",
+      passwordHash: created?.passwordHash,
+      role: "user",
+    });
+    assert.equal(passwordSentToHasher, "correct-horse-battery");
+    assert.notEqual(created?.passwordHash, "correct-horse-battery");
+    assert.equal(await bcrypt.compare("correct-horse-battery", created!.passwordHash), true);
+    assert.equal(JSON.stringify(responseBody).includes("passwordHash"), false);
+  });
+});
+
+test("registration rejects duplicate emails including unique-index races", async () => {
+  let hashCalled = false;
+  const app = express();
+  app.use(express.json());
+  app.post("/register", createRegistrationHandler({
+    parseRegistrationBody,
+    async findExistingAccount() { return true; },
+    async hashPassword() { hashCalled = true; return "hash"; },
+    async createAccount() { return { id: 2 }; },
+  }));
+
+  await withServer(app, async (_server, baseUrl) => {
+    const response = await fetch(`${baseUrl}/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Person", email: "person@example.test", password: "correct-horse-battery" }),
+    });
+    assert.equal(response.status, 409);
+    assert.equal(hashCalled, false);
+    assert.deepEqual(await response.json(), { error: "An account with this email already exists" });
+  });
+
+  const raceApp = express();
+  raceApp.use(express.json());
+  raceApp.post("/register", createRegistrationHandler({
+    parseRegistrationBody,
+    async findExistingAccount() { return false; },
+    async hashPassword() { return "hash"; },
+    async createAccount() { throw Object.assign(new Error("duplicate"), { code: 11000 }); },
+  }));
+  raceApp.use(createApiErrorHandler({ warn() {}, error() {} }));
+  await withServer(raceApp, async (_server, baseUrl) => {
+    const response = await fetch(`${baseUrl}/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Person", email: "person@example.test", password: "correct-horse-battery" }),
+    });
+    assert.equal(response.status, 409);
+    assert.deepEqual(await response.json(), { error: "An account with this email already exists" });
+  });
+});
+
+test("legacy admin JWT claims stay admin and user claims cannot become admin", () => {
+  assert.deepEqual(principalFromClaims({ adminId: 7 }), { id: 7, role: "admin" });
+  assert.deepEqual(principalFromClaims({ userId: 8, role: "user" }), { id: 8, role: "user" });
+  assert.equal(principalFromClaims({ userId: 8, role: "admin" }), null);
+  assert.equal(principalFromClaims({ adminId: 8, role: "user" }), null);
+});
+
+test("normal users are restricted to their own leads and denied admin-only routes", async () => {
+  assert.deepEqual(getLeadScope({ id: 24, role: "user" }), { ownerId: 24 });
+  assert.deepEqual(getLeadScope({ id: 1, role: "admin" }), {});
+
+  const app = express();
+  app.get("/admin", (req, _res, next) => {
+    (req as AuthenticatedRequest).auth = { id: 24, role: "user" };
+    next();
+  }, requireAdmin, (_req, res) => res.json({ status: "allowed" }));
+
+  await withServer(app, async (_server, baseUrl) => {
+    const response = await fetch(`${baseUrl}/admin`);
+    assert.equal(response.status, 403);
+    assert.deepEqual(await response.json(), { error: "Forbidden" });
+  });
 });
 
 async function withServer<T>(
