@@ -11,6 +11,7 @@ import {
   GetLeadsQueryParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import { getLeadScope } from "../middlewares/authorization";
 import {
   escapeRegexLiteral,
   isDecimalIntegerString,
@@ -41,7 +42,7 @@ router.get("/leads", requireAuth, async (req, res): Promise<void> => {
   const { search, status, sort, page = 1, limit = 20 } = parsed.data;
   const offset = (page - 1) * limit;
 
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = { ...getLeadScope(req.auth!) };
   if (search) {
     const literalSearch = new RegExp(escapeRegexLiteral(search), "i");
     filter["$or"] = [
@@ -64,7 +65,7 @@ router.get("/leads", requireAuth, async (req, res): Promise<void> => {
       .lean(),
   ]);
 
-  const leads = docs.map((d) => docToLead(d as Parameters<typeof docToLead>[0]));
+  const leads = docs.map((d) => docToLead(d as unknown as Parameters<typeof docToLead>[0]));
   const totalPages = Math.ceil(total / limit);
 
   res.json({ leads, total, page, limit, totalPages });
@@ -77,8 +78,9 @@ router.post("/leads", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const doc = await new LeadModel(parsed.data).save();
-  res.status(201).json(docToLead(doc as Parameters<typeof docToLead>[0]));
+  const owner = req.auth!.role === "user" ? { ownerId: req.auth!.id } : {};
+  const doc = await new LeadModel({ ...parsed.data, ...owner }).save();
+  res.status(201).json(docToLead(doc as unknown as Parameters<typeof docToLead>[0]));
 });
 
 router.get("/leads/:id", requireAuth, async (req, res): Promise<void> => {
@@ -92,13 +94,13 @@ router.get("/leads/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const doc = await LeadModel.findOne({ id: params.data.id }).lean();
+  const doc = await LeadModel.findOne({ id: params.data.id, ...getLeadScope(req.auth!) }).lean();
   if (!doc) {
     res.status(404).json({ error: "Lead not found" });
     return;
   }
 
-  res.json(docToLead(doc as Parameters<typeof docToLead>[0]));
+  res.json(docToLead(doc as unknown as Parameters<typeof docToLead>[0]));
 });
 
 router.put("/leads/:id", requireAuth, async (req, res): Promise<void> => {
@@ -119,7 +121,7 @@ router.put("/leads/:id", requireAuth, async (req, res): Promise<void> => {
   }
 
   const doc = await LeadModel.findOneAndUpdate(
-    { id: params.data.id },
+    { id: params.data.id, ...getLeadScope(req.auth!) },
     { ...parsed.data, updatedAt: new Date() },
     { new: true },
   ).lean();
@@ -129,7 +131,7 @@ router.put("/leads/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(docToLead(doc as Parameters<typeof docToLead>[0]));
+  res.json(docToLead(doc as unknown as Parameters<typeof docToLead>[0]));
 });
 
 router.delete("/leads/:id", requireAuth, async (req, res): Promise<void> => {
@@ -143,7 +145,10 @@ router.delete("/leads/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const doc = await LeadModel.findOneAndDelete({ id: params.data.id }).lean();
+  const doc = await LeadModel.findOneAndDelete({
+    id: params.data.id,
+    ...getLeadScope(req.auth!),
+  }).lean();
   if (!doc) {
     res.status(404).json({ error: "Lead not found" });
     return;
@@ -170,7 +175,7 @@ router.patch("/leads/:id/status", requireAuth, async (req, res): Promise<void> =
   }
 
   const doc = await LeadModel.findOneAndUpdate(
-    { id: params.data.id },
+    { id: params.data.id, ...getLeadScope(req.auth!) },
     { status: parsed.data.status, updatedAt: new Date() },
     { new: true },
   ).lean();
@@ -180,7 +185,7 @@ router.patch("/leads/:id/status", requireAuth, async (req, res): Promise<void> =
     return;
   }
 
-  res.json(docToLead(doc as Parameters<typeof docToLead>[0]));
+  res.json(docToLead(doc as unknown as Parameters<typeof docToLead>[0]));
 });
 
 export default router;

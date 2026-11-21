@@ -5,6 +5,8 @@ import { getNextSequence } from "./counter";
 const leadSchema = new mongoose.Schema(
   {
     id: { type: Number, unique: true },
+    // Missing ownerId identifies legacy/admin-owned leads and remains invisible to regular users.
+    ownerId: { type: Number, index: true },
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },
