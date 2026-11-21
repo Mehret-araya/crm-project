@@ -27,6 +27,7 @@ import type {
   LeadsListResponse,
   LoginRequest,
   LoginResponse,
+  RegisterRequest,
   SourceBreakdown,
   UpdateLeadBody,
   UpdateLeadStatusBody,
@@ -194,8 +195,8 @@ export function useReadinessCheck<
 }
 
 /**
- * Authenticate with email and password, returns JWT token
- * @summary Admin login
+ * Authenticate an existing account with email and password, returns a JWT token
+ * @summary Account login
  */
 export const getLoginUrl = () => {
   return `/api/auth/login`;
@@ -258,7 +259,7 @@ export type LoginMutationBody = BodyType<LoginRequest>;
 export type LoginMutationError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Admin login
+ * @summary Account login
  */
 export const useLogin = <
   TError = ErrorType<ErrorResponse>,
@@ -278,6 +279,93 @@ export const useLogin = <
   TContext
 > => {
   return useMutation(getLoginMutationOptions(options));
+};
+
+/**
+ * Creates a normal-user account. Administrator privileges are never assigned here.
+ * @summary Register a normal user account
+ */
+export const getRegisterUrl = () => {
+  return `/api/auth/register`;
+};
+
+export const register = async (
+  registerRequest: RegisterRequest,
+  options?: RequestInit,
+): Promise<AdminUser> => {
+  return customFetch<AdminUser>(getRegisterUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(registerRequest),
+  });
+};
+
+export const getRegisterMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof register>>,
+    TError,
+    { data: BodyType<RegisterRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof register>>,
+  TError,
+  { data: BodyType<RegisterRequest> },
+  TContext
+> => {
+  const mutationKey = ["register"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof register>>,
+    { data: BodyType<RegisterRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return register(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterMutationResult = NonNullable<
+  Awaited<ReturnType<typeof register>>
+>;
+export type RegisterMutationBody = BodyType<RegisterRequest>;
+export type RegisterMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Register a normal user account
+ */
+export const useRegister = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof register>>,
+    TError,
+    { data: BodyType<RegisterRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof register>>,
+  TError,
+  { data: BodyType<RegisterRequest> },
+  TContext
+> => {
+  return useMutation(getRegisterMutationOptions(options));
 };
 
 /**
@@ -345,7 +433,7 @@ export function useGetMe<
 }
 
 /**
- * Returns a list of leads with optional search and filter
+ * Returns the leads visible to the authenticated account, with optional search and filter
  * @summary List all leads
  */
 export const getGetLeadsUrl = (params?: GetLeadsParams) => {

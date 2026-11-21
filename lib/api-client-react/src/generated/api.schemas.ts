@@ -21,6 +21,21 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface RegisterRequest {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  name: string;
+  /** @maxLength 254 */
+  email: string;
+  /**
+   * @minLength 12
+   * @maxLength 72
+   */
+  password: string;
+}
+
 export interface AdminUser {
   id: number;
   email: string;
