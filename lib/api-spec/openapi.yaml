@@ -55,8 +55,8 @@ paths:
     post:
       operationId: login
       tags: [auth]
-      summary: Admin login
-      description: Authenticate with email and password, returns JWT token
+      summary: Account login
+      description: Authenticate an existing account with email and password, returns a JWT token
       requestBody:
         required: true
         content:
@@ -72,6 +72,44 @@ paths:
                 $ref: "#/components/schemas/LoginResponse"
         "401":
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a normal user account
+      description: Creates a normal-user account. Administrator privileges are never assigned here.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Account created; sign in to continue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "400":
+          description: Invalid registration details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: An account with this email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many registration attempts
           content:
             application/json:
               schema:
@@ -104,7 +142,7 @@ paths:
       operationId: getLeads
       tags: [leads]
       summary: List all leads
-      description: Returns a list of leads with optional search and filter
+      description: Returns the leads visible to the authenticated account, with optional search and filter
       security:
         - bearerAuth: []
       parameters:
@@ -392,6 +430,26 @@ components:
         password:
           type: string
       required:
+        - email
+        - password
+
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 12
+          maxLength: 72
+      required:
+        - name
         - email
         - password
 
