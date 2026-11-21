@@ -22,6 +22,7 @@ export * from "./leadSource";
 export * from "./leadStatus";
 export * from "./loginRequest";
 export * from "./loginResponse";
+export * from "./registerRequest";
 export * from "./sourceBreakdown";
 export * from "./updateLeadBody";
 export * from "./updateLeadBodySource";

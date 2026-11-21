@@ -24,8 +24,8 @@ export const ReadinessCheckResponse = zod.object({
 });
 
 /**
- * Authenticate with email and password, returns JWT token
- * @summary Admin login
+ * Authenticate an existing account with email and password, returns a JWT token
+ * @summary Account login
  */
 export const LoginBody = zod.object({
   email: zod.string().email(),
@@ -42,6 +42,26 @@ export const LoginResponse = zod.object({
 });
 
 /**
+ * Creates a normal-user account. Administrator privileges are never assigned here.
+ * @summary Register a normal user account
+ */
+export const registerBodyNameMax = 120;
+
+export const registerBodyEmailMax = 254;
+
+export const registerBodyPasswordMin = 12;
+export const registerBodyPasswordMax = 72;
+
+export const RegisterBody = zod.object({
+  name: zod.string().min(1).max(registerBodyNameMax),
+  email: zod.string().email().max(registerBodyEmailMax),
+  password: zod
+    .string()
+    .min(registerBodyPasswordMin)
+    .max(registerBodyPasswordMax),
+});
+
+/**
  * Returns authenticated user info
  * @summary Get current user
  */
@@ -52,7 +72,7 @@ export const GetMeResponse = zod.object({
 });
 
 /**
- * Returns a list of leads with optional search and filter
+ * Returns the leads visible to the authenticated account, with optional search and filter
  * @summary List all leads
  */
 export const getLeadsQuerySearchMax = 100;
