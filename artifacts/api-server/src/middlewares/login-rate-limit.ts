@@ -18,3 +18,18 @@ export function createLoginRateLimiter(options?: {
 }
 
 export const loginRateLimiter = createLoginRateLimiter();
+
+export function createRegistrationRateLimiter(options?: {
+  limit?: number;
+  windowMs?: number;
+}) {
+  return rateLimit({
+    windowMs: options?.windowMs ?? FIFTEEN_MINUTES_MS,
+    limit: options?.limit ?? 5,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: { error: "Too many registration attempts. Please try again later." },
+  });
+}
+
+export const registrationRateLimiter = createRegistrationRateLimiter();
