@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
+import { Link } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -127,6 +128,9 @@ export default function Login() {
                 </Button>
               </form>
             </Form>
+            <p className="text-center text-sm text-zinc-400 mt-5">
+              New to MiniCRM? <Link href="/register" className="text-orange-400 hover:text-orange-300">Create an account</Link>
+            </p>
           </CardContent>
         </Card>
       </div>

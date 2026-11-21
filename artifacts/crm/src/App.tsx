@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 // App layout & auth
 import { AppLayout } from "@/components/layout/app-layout";
 import Login from "@/pages/login";
+import Register from "@/pages/register";
 
 // Pages
 import Dashboard from "@/pages/dashboard";
@@ -27,6 +28,7 @@ function AppRoutes() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       
       {/* Protected Routes */}
       <Route path="/">
