@@ -22,6 +22,14 @@ import {
   createDatabaseAvailabilityMiddleware,
   createReadinessHandler,
 } from "../src/lib/readiness.ts";
+import { isValidAdminName } from "../src/lib/admin-profile.ts";
+
+test("admin profile names must be present, non-null, and non-empty", () => {
+  for (const name of [undefined, null, "", "   ", 42]) {
+    assert.equal(isValidAdminName(name), false, `name ${String(name)}`);
+  }
+  assert.equal(isValidAdminName("Admin User"), true);
+});
 
 async function withServer<T>(
   app: express.Express,

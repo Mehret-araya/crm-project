@@ -37,6 +37,10 @@ const navItems = [
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
   const { data: user } = useGetMe();
+  const displayName =
+    typeof user?.name === "string" && user.name.trim().length > 0
+      ? user.name.trim()
+      : "Admin";
 
   const handleLogout = () => {
     removeToken();
@@ -82,11 +86,11 @@ export function AppSidebar() {
           <div className="flex items-center gap-3 mb-4 px-2">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-primary/20 text-primary">
-                {user.name.charAt(0).toUpperCase()}
+                {displayName.charAt(0).toUpperCase() || "A"}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium truncate">{user.name}</span>
+              <span className="text-sm font-medium truncate">{displayName}</span>
               <span className="text-xs text-muted-foreground truncate">{user.email}</span>
             </div>
           </div>

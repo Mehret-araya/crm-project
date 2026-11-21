@@ -4,6 +4,8 @@ import { AdminModel } from "@workspace/db-mongo";
 import { LoginBody } from "@workspace/api-zod";
 import { signToken, requireAuth, AuthenticatedRequest } from "../middlewares/auth";
 import { loginRateLimiter } from "../middlewares/login-rate-limit";
+import { logger } from "../lib/logger";
+import { isValidAdminName } from "../lib/admin-profile";
 
 const router: IRouter = Router();
 
@@ -41,7 +43,13 @@ router.get("/auth/me", requireAuth, async (req: AuthenticatedRequest, res): Prom
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  res.json({ id: admin["id"], email: admin["email"], name: admin["name"] });
+  const adminName = (admin as { name?: unknown }).name;
+  if (!isValidAdminName(adminName)) {
+    logger.error({ requestId: req.id, adminId: req.adminId }, "Stored admin profile has an invalid name");
+    res.status(500).json({ error: "Internal server error" });
+    return;
+  }
+  res.json({ id: admin["id"], email: admin["email"], name: adminName });
 });
 
 export default router;
