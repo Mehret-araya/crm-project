@@ -20,7 +20,7 @@ async function main(): Promise<void> {
     await connectDB();
 
     await bootstrapInitialAdmin(input, {
-      countAdmins: () => AdminModel.countDocuments(),
+      countAdmins: () => AdminModel.countDocuments({ role: { $ne: "user" } }),
       claimBootstrap: async () => {
         try {
           await CounterModel.create({ _id: ADMIN_BOOTSTRAP_LOCK_ID, seq: 1 });
@@ -39,7 +39,7 @@ async function main(): Promise<void> {
       },
       hashPassword: (password) => bcrypt.default.hash(password, 12),
       createAdmin: async (admin) => {
-        await new AdminModel(admin).save();
+        await new AdminModel({ ...admin, role: "admin" }).save();
       },
     });
 
