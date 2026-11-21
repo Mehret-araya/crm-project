@@ -56,7 +56,9 @@ There are no demo credentials or public admin-seed endpoint. The initial adminis
 pnpm --filter @workspace/scripts seed-admin
 ```
 
-The script reads `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `DATABASE_URL` from the ignored `lib/.env` file. Bootstrap requires an empty admin collection and uses a MongoDB lock to prevent a second initial administrator. Do not remove the lock while an administrator exists. The API process separately needs `DATABASE_URL` and `SESSION_SECRET` in its own environment.
+The script reads `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `DATABASE_URL` from the ignored `lib/.env` file. Bootstrap requires that no administrator account exists and uses a MongoDB lock to prevent a second initial administrator. Normal user registrations do not prevent the initial admin from being created. Do not remove the lock while an administrator exists. The API process separately needs `DATABASE_URL` and `SESSION_SECRET` in its own environment.
+
+Registered accounts receive the `user` role. They can create and manage only their own leads. Leads without an owner—including legacy leads—remain visible only to administrators. Administrators retain access to the full lead workspace.
 
 ## Useful commands
 
@@ -81,7 +83,8 @@ All application routes are served under `/api`. Authenticated routes require a b
 | --- | --- | --- |
 | `GET` | `/api/healthz` | Process health |
 | `GET` | `/api/readyz` | Readiness, including MongoDB connectivity |
-| `POST` | `/api/auth/login` | Authenticate an administrator |
+| `POST` | `/api/auth/register` | Create a normal-user account |
+| `POST` | `/api/auth/login` | Authenticate an administrator or normal user |
 | `GET` | `/api/auth/me` | Current administrator profile |
 | `GET` | `/api/leads` | Search, filter, sort, and paginate leads |
 | `POST` | `/api/leads` | Create a lead |
