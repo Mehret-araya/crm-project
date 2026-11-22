@@ -137,7 +137,7 @@ pnpm.cmd --filter @workspace/api-spec run codegen
 
 ## Deployment
 
-`render.yaml` defines the API service's Render build, start, health-check, and environment configuration. The CRM frontend can be built with `pnpm.cmd --filter @workspace/crm build`. Production API URL configuration is supplied through `VITE_API_URL`; the Vite proxy to port `10001` is for local development only.
+`render.yaml` defines the infrastructure blueprint for deploying both the Express API (`crm-project-api`) and the React SPA static site (`crm-project-frontend`) to Render. Production API URL configuration is automatically supplied to the frontend at build time via `VITE_API_URL`. Detailed instructions and environment configurations are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Security
 
