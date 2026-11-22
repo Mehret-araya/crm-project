@@ -1,0 +1,49 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck libraries
+        run: pnpm run typecheck:libs
+
+      - name: Run API server tests
+        run: node --experimental-strip-types --test scripts/test/admin-bootstrap.test.ts artifacts/api-server/test/security.test.ts artifacts/api-server/test/reliability.test.ts artifacts/api-server/test/cors.test.ts
+
+      - name: Run CRM frontend tests
+        run: node --experimental-strip-types --test artifacts/crm/test/*.test.ts
+
+      - name: Build API server
+        run: pnpm --filter @workspace/api-server run build
+
+      - name: Build CRM frontend
+        env:
+          NODE_ENV: production
+          BASE_PATH: /
+        run: pnpm --filter @workspace/crm build
