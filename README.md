@@ -1,108 +1,148 @@
 # MiniCRM
 
-MiniCRM is a pnpm workspace for a lead management application. It includes a React frontend, an Express API, MongoDB persistence, generated API clients and schemas, and a separate mockup sandbox.
+MiniCRM is a lead management application in a pnpm workspace. It includes a React and TypeScript web client, an Express API, MongoDB persistence, generated API schemas and clients, and a standalone UI mockup sandbox.
+
+## Contents
+
+- [Workspace](#workspace)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Local development](#local-development)
+- [Accounts and access](#accounts-and-access)
+- [API reference](#api-reference)
+- [Checks and code generation](#checks-and-code-generation)
+- [Deployment](#deployment)
+- [Security](#security)
 
 ## Workspace
 
-| Path | Purpose |
+| Path | Description |
 | --- | --- |
-| `artifacts/crm` | React, TypeScript, and Vite CRM frontend |
-| `artifacts/api-server` | Express API for authentication, leads, dashboard data, and health checks |
+| `artifacts/crm` | React, TypeScript, and Vite web application |
+| `artifacts/api-server` | Express API for authentication, leads, dashboards, and health checks |
 | `artifacts/mockup-sandbox` | Standalone UI mockup application |
-| `lib/db-mongo` | Mongoose connection and MongoDB models used by the API |
-| `lib/api-spec` | OpenAPI source and API client generation workflow |
+| `lib/db-mongo` | Mongoose connection and MongoDB models |
+| `lib/api-spec` | OpenAPI source and client generation workflow |
 | `lib/api-zod` | Generated API schemas and request validation |
 | `lib/api-client-react` | Generated React Query hooks and API client |
-| `scripts` | Admin bootstrap utility and backend test commands |
+| `scripts` | Administrator bootstrap utility and backend tests |
+
+## Features
+
+- Dashboard statistics, lead activity, and source summaries.
+- Lead creation, search, filtering, sorting, pagination, editing, and deletion.
+- Account registration and JWT-based sign-in.
+- Role-based lead visibility: users manage their own leads; administrators can manage all leads, including unowned legacy leads.
+- MongoDB readiness checks and validated API inputs.
 
 ## Requirements
 
-- Node.js 24
-- pnpm
-- A MongoDB database reachable from the API process (local MongoDB or MongoDB Atlas)
+- Node.js 24 or later
+- pnpm 12
+- A MongoDB database accessible to the API; MongoDB Atlas is supported
 
-Install workspace dependencies from the repository root:
+Install dependencies from the repository root:
 
-```sh
-pnpm install
+```powershell
+pnpm.cmd install
 ```
 
 ## Local development
 
-The API requires `DATABASE_URL`, `SESSION_SECRET`, and `PORT` in its process environment. `DATABASE_URL` must use a MongoDB URI (`mongodb://` or `mongodb+srv://`). `SESSION_SECRET` must be a private value of at least 32 bytes. The API does not load a `.env` file automatically; configure these values in your terminal environment or IDE run configuration. Never commit credentials or place production credentials in a local development environment.
+### 1. Configure MongoDB
 
-For a local API process, use port `10000`, which is also the target configured by the Vite development proxy. Configure the required environment variables in the API terminal, then build and start the API:
+The API development launcher reads `DATABASE_URL` from `lib/.env`. Create or edit this file locally and use a valid MongoDB URI. For Atlas, copy the connection string from **Cluster0 > Connect > Drivers > Node.js**, use a database user, and set the database path to `/crmdb`. Preserve Atlas query parameters and URL-encode reserved characters in the username or password when required.
 
-```sh
-pnpm --filter @workspace/api-server run build
-pnpm --filter @workspace/api-server run start
+Keep this file private. It is ignored by Git. Never put credentials in source code, terminal commands, screenshots, or chat. Use a development database user and allow network access only from the development environment.
+
+### 2. Start the API
+
+In a PowerShell window at the project root:
+
+```powershell
+pnpm.cmd --filter @workspace/api-server dev
 ```
 
-In a second terminal, start the CRM frontend:
+The development command builds the API, loads `lib/.env`, and listens on `http://127.0.0.1:10001`. It starts accepting requests only after MongoDB connects. If no `SESSION_SECRET` is provided, the local launcher generates a random, process-only secret without printing or saving it; local login tokens become invalid when the API restarts. For stable local sessions, configure a private `SESSION_SECRET` of at least 32 bytes in `lib/.env`.
 
-```sh
-pnpm --filter @workspace/crm dev
+Check API and database readiness in another PowerShell window:
+
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:10001/api/readyz"
 ```
 
-Vite defaults to port `8081` and may select another available port if that port is occupied. In development, requests under `/api` are proxied to `http://127.0.0.1:10000`. Start the API before using authenticated CRM pages.
+A ready API returns `status: ok`. The endpoint returns an unsuccessful response when MongoDB is unavailable.
 
-The repository does not include a Docker Compose setup or a bundled local MongoDB server. MongoDB Atlas is supported: its `mongodb+srv://` URI is accepted by the connection layer. Create a development-only database user, restrict network access to your development environment, and keep the URI private.
+### 3. Start the web application
 
-## Initial administrator
+In a second terminal at the project root:
 
-There are no demo credentials or public admin-seed endpoint. The initial administrator is created through the one-time bootstrap script:
-
-```sh
-pnpm --filter @workspace/scripts seed-admin
+```powershell
+pnpm.cmd --filter @workspace/crm dev
 ```
 
-The script reads `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `DATABASE_URL` from the ignored `lib/.env` file. Bootstrap requires that no administrator account exists and uses a MongoDB lock to prevent a second initial administrator. Normal user registrations do not prevent the initial admin from being created. Do not remove the lock while an administrator exists. The API process separately needs `DATABASE_URL` and `SESSION_SECRET` in its own environment.
+Vite uses port `8081` by default and may choose another available port if it is occupied. Open the URL printed by Vite. During development, requests under `/api` are proxied to `http://127.0.0.1:10001`.
 
-Registered accounts receive the `user` role. They can create and manage only their own leads. Leads without an owner—including legacy leads—remain visible only to administrators. Administrators retain access to the full lead workspace.
+## Accounts and access
 
-## Useful commands
+Public registration creates normal-user accounts only. New users can view, create, update, and delete their own leads. Unowned leads, including leads created before ownership was introduced, are administrator-only. Administrators retain access to the full lead workspace and dashboard data.
 
-```sh
-pnpm run typecheck
-pnpm run build
-pnpm --filter @workspace/crm build
-pnpm --filter @workspace/api-server run typecheck
-pnpm --filter @workspace/crm run typecheck
-pnpm --filter @workspace/scripts test:security
-pnpm --filter @workspace/scripts test:reliability
-pnpm --filter @workspace/api-spec run codegen
+To create the initial administrator, use the trusted bootstrap command only when the database does not already contain an administrator:
+
+```powershell
+pnpm.cmd --filter @workspace/scripts seed-admin
 ```
 
-The API build and start are separate commands so the API environment can be configured explicitly. The API starts listening only after MongoDB connects successfully.
+The bootstrap utility reads `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `DATABASE_URL` from `lib/.env`. It uses a MongoDB lock to prevent a second initial administrator. Normal-user registrations do not count as administrators. Do not remove the bootstrap lock while an administrator exists. This command is for initial setup, not normal registration.
 
-## API overview
+## API reference
 
-All application routes are served under `/api`. Authenticated routes require a bearer token obtained from login.
+All API routes are served under `/api`. Authenticated routes use a bearer token returned by sign-in.
 
-| Method | Route | Purpose |
+| Method | Route | Description |
 | --- | --- | --- |
 | `GET` | `/api/healthz` | Process health |
-| `GET` | `/api/readyz` | Readiness, including MongoDB connectivity |
-| `POST` | `/api/auth/register` | Create a normal-user account |
-| `POST` | `/api/auth/login` | Authenticate an administrator or normal user |
-| `GET` | `/api/auth/me` | Current administrator profile |
-| `GET` | `/api/leads` | Search, filter, sort, and paginate leads |
+| `GET` | `/api/readyz` | Readiness, including a MongoDB ping |
+| `POST` | `/api/auth/register` | Register a normal-user account |
+| `POST` | `/api/auth/login` | Sign in an administrator or normal user |
+| `GET` | `/api/auth/me` | Get the current account profile |
+| `GET` | `/api/leads` | Search, filter, sort, and paginate visible leads |
 | `POST` | `/api/leads` | Create a lead |
-| `GET` | `/api/leads/:id` | Get a lead |
-| `PUT` | `/api/leads/:id` | Update a lead |
-| `DELETE` | `/api/leads/:id` | Delete a lead |
-| `PATCH` | `/api/leads/:id/status` | Update lead status |
-| `GET` | `/api/dashboard/stats` | Dashboard statistics |
-| `GET` | `/api/dashboard/recent` | Recent leads |
-| `GET` | `/api/dashboard/sources` | Lead counts by source |
+| `GET` | `/api/leads/:id` | Get a visible lead |
+| `PUT` | `/api/leads/:id` | Update a visible lead |
+| `DELETE` | `/api/leads/:id` | Delete a visible lead |
+| `PATCH` | `/api/leads/:id/status` | Update a visible lead status |
+| `GET` | `/api/dashboard/stats` | Statistics for leads visible to the account |
+| `GET` | `/api/dashboard/recent` | Recent visible leads |
+| `GET` | `/api/dashboard/sources` | Visible lead counts by source |
+
+## Checks and code generation
+
+Run the available checks from the repository root:
+
+```powershell
+pnpm.cmd --filter @workspace/api-server run typecheck
+pnpm.cmd --filter @workspace/crm run typecheck
+pnpm.cmd --filter @workspace/crm test
+pnpm.cmd --filter @workspace/scripts test:security
+pnpm.cmd --filter @workspace/scripts test:reliability
+pnpm.cmd --filter @workspace/crm build
+```
+
+The OpenAPI document is the source for generated API schemas and clients. After changing it, regenerate them with:
+
+```powershell
+pnpm.cmd --filter @workspace/api-spec run codegen
+```
 
 ## Deployment
 
-`render.yaml` defines the Render API service, including its build and start commands, health check, and required environment configuration. The frontend can be built with `pnpm --filter @workspace/crm build`. Production API URL configuration is supplied separately through `VITE_API_URL`; the Vite development proxy applies only to the development server.
+`render.yaml` defines the API service's Render build, start, health-check, and environment configuration. The CRM frontend can be built with `pnpm.cmd --filter @workspace/crm build`. Production API URL configuration is supplied through `VITE_API_URL`; the Vite proxy to port `10001` is for local development only.
 
-## Security notes
+## Security
 
-- Keep database credentials and `SESSION_SECRET` out of source control and logs.
-- Use a unique, private session secret of at least 32 bytes. Rotating it invalidates existing JWTs.
-- Admin bootstrap is intended for the initial trusted setup only.
-- Do not use production credentials or production data for local development.
+- Keep MongoDB credentials and `SESSION_SECRET` private and out of source control and logs.
+- Production must receive a stable `SESSION_SECRET` of at least 32 bytes through its protected environment configuration. Rotating it invalidates existing JWTs.
+- Passwords are hashed before storage. Registration never grants administrator privileges.
+- Use the one-time admin bootstrap only for initial trusted setup; do not rerun it when an administrator already exists.
+- Use development-only credentials and data for local work.
