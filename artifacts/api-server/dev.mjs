@@ -19,7 +19,7 @@ if (parsedDatabaseUrl.protocol !== "mongodb:" && parsedDatabaseUrl.protocol !== 
 }
 
 process.env.NODE_ENV = "development";
-process.env.PORT = "10000";
+process.env.PORT = "10001";
 
 // Keep a local-only fallback in memory; do not write or print the secret.
 if (!process.env.SESSION_SECRET) {
