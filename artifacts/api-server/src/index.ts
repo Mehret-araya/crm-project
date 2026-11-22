@@ -24,10 +24,13 @@ async function start(): Promise<void> {
       await connectDB();
       logger.info("MongoDB connected");
     }, () => new Promise<void>((resolve, reject) => {
-      const server = app.listen(port, () => {
+      const onListening = () => {
         logger.info({ port }, "Server listening");
         resolve();
-      });
+      };
+      const server = process.env.NODE_ENV === "production"
+        ? app.listen(port, "0.0.0.0", onListening)
+        : app.listen(port, onListening);
       server.once("error", reject);
     }));
   } catch (error) {
