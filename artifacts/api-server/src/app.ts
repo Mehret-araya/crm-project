@@ -35,13 +35,31 @@ app.use(
     },
   }),
 );
+const allowedOrigins = new Set([
+  "https://mehret-araya.github.io",
+  "https://crm-project-0s9s.onrender.com",
+  "http://localhost:8081",
+  "http://localhost:5173",
+]);
+const configuredFrontendOrigin = process.env.FRONTEND_ORIGIN?.trim();
+if (configuredFrontendOrigin) {
+  let parsedFrontendOrigin: URL;
+  try {
+    parsedFrontendOrigin = new URL(configuredFrontendOrigin);
+  } catch {
+    throw new Error("FRONTEND_ORIGIN must be a valid HTTP or HTTPS origin.");
+  }
+  if (
+    !["http:", "https:"].includes(parsedFrontendOrigin.protocol) ||
+    parsedFrontendOrigin.origin !== configuredFrontendOrigin
+  ) {
+    throw new Error("FRONTEND_ORIGIN must be a valid HTTP or HTTPS origin without a path.");
+  }
+  allowedOrigins.add(parsedFrontendOrigin.origin);
+}
+
 app.use(cors({
-  origin: [
-    "https://mehret-araya.github.io",
-    "https://crm-project-0s9s.onrender.com",
-    "http://localhost:8081",
-    "http://localhost:5173",
-  ],
+  origin: [...allowedOrigins],
   credentials: true,
 }));
 app.use(express.json());
