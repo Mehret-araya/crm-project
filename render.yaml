@@ -23,3 +23,24 @@ services:
         value: 1
       - key: FRONTEND_ORIGIN
         value: https://crm-project-frontend.onrender.com
+
+  - type: web
+    name: crm-project-frontend
+    runtime: static
+    rootDir: .
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @workspace/crm build
+    staticPublishPath: artifacts/crm/dist/public
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: BASE_PATH
+        value: /
+      - key: VITE_API_URL
+        fromService:
+          name: crm-project-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
