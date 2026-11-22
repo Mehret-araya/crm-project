@@ -6,11 +6,13 @@ services:
     plan: free
     rootDir: .
     healthCheckPath: /api/readyz
-    buildCommand: pnpm install && pnpm --filter @workspace/api-server run build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build
     startCommand: node --enable-source-maps artifacts/api-server/dist/index.mjs
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 24.19.0
       - key: PORT
         value: 10000
       - key: DATABASE_URL
@@ -19,3 +21,5 @@ services:
         generateValue: true
       - key: TRUST_PROXY_HOPS
         value: 1
+      - key: FRONTEND_ORIGIN
+        value: https://crm-project-frontend.onrender.com
